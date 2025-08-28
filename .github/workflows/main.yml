@@ -2,7 +2,7 @@ name: Sync selected problems to study repo
 
 on:
   push:
-    branches: [ main ]  # A 레포 main 브랜치에 push 시 실행
+    branches: [ main ]  # A 레포 main에 push될 때 실행
   workflow_dispatch:
 
 jobs:
@@ -114,18 +114,21 @@ jobs:
           GIT_COMMITTER_NAME: "github-actions[bot]"
           GIT_COMMITTER_EMAIL: "41898282+github-actions[bot]@users.noreply.github.com"
         run: |
+          set -e
           git config core.quotepath false
-          git fetch origin main --prune
-          git checkout -B main origin/main
+
+          # 얕은 클론 환경에서 origin/main ref가 없을 수 있으므로 FETCH_HEAD 기준으로 체크아웃
+          git fetch --depth=1 origin main --prune
+          git checkout -B main FETCH_HEAD
 
           if [ -n "$(git status --porcelain)" ]; then
             git add -A
             git commit -m "sync(selected): ${{ github.actor }} from ${{ github.repository }}@${GITHUB_SHA::7}"
 
-            # 안전하게 최신 반영
+            # 경쟁 푸시 대비(있어도 실패 없이 무시)
             git pull --rebase origin main || true
 
-            # 원격이 그대로일 때만 덮어쓰기
+            # 안전 강제 푸시 (다른 사람 최신 커밋을 실수로 덮지 않도록)
             git push --force-with-lease origin main
           else
             echo "No selected changes to sync."

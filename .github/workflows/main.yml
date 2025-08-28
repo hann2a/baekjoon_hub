@@ -2,7 +2,7 @@ name: Sync selected problems to study repo
 
 on:
   push:
-    branches: [ main ]  # A 레포 main에 push될 때 실행
+    branches: [ master ]  # main이면 main로 변경
   workflow_dispatch:
 
 jobs:
@@ -10,7 +10,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Check out personal repo (A)
+      - name: Check out personal repo
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
@@ -20,7 +20,7 @@ jobs:
           git config --global user.name "${{ github.actor }}"
           git config --global user.email "${{ github.actor }}@users.noreply.github.com"
 
-      - name: Clone study repo (B)
+      - name: Clone study repo
         env:
           STUDY_PAT2: ${{ secrets.STUDY_PAT2 }}
         run: |
@@ -61,7 +61,7 @@ jobs:
           boj_names  = [str(x) for x in plat.get("boj_names",  [])]
           swea_names = [str(x) for x in plat.get("swea_names", [])]
 
-          # 2) 후보 파일 전체 스캔
+          # 2) 후보 파일 전체 스캔 (BOJ/boj/백준/SWEA/swea 폴더만)
           roots = ["BOJ", "boj", "백준", "SWEA", "swea"]
           exts  = (".py", ".cpp", ".java", ".md", ".txt")
           candidates = []
@@ -80,6 +80,7 @@ jobs:
             return bool(nums & boj_nums) or bool(nums & swea_nums)
 
           def has_name(path):
+            # 언더스코어를 공백처럼 취급해 부분일치 강화
             raw   = path
             lower = raw.lower().replace("_", " ")
             for kw in boj_names + swea_names:
@@ -106,30 +107,14 @@ jobs:
             shutil.copy2(src, dst)
           PY
 
-      - name: Commit & Push to study repo (main)
+      - name: Commit & Push to study repo (master)
         working-directory: algostudy
-        env:
-          GIT_AUTHOR_NAME: "github-actions[bot]"
-          GIT_AUTHOR_EMAIL: "41898282+github-actions[bot]@users.noreply.github.com"
-          GIT_COMMITTER_NAME: "github-actions[bot]"
-          GIT_COMMITTER_EMAIL: "41898282+github-actions[bot]@users.noreply.github.com"
         run: |
-          set -e
-          git config core.quotepath false
-
-          # 얕은 클론 환경에서 origin/main ref가 없을 수 있으므로 FETCH_HEAD 기준으로 체크아웃
-          git fetch --depth=1 origin main --prune
-          git checkout -B main FETCH_HEAD
-
+          git checkout -B master
           if [ -n "$(git status --porcelain)" ]; then
             git add -A
             git commit -m "sync(selected): ${{ github.actor }} from ${{ github.repository }}@${GITHUB_SHA::7}"
-
-            # 경쟁 푸시 대비(있어도 실패 없이 무시)
-            git pull --rebase origin main || true
-
-            # 안전 강제 푸시 (다른 사람 최신 커밋을 실수로 덮지 않도록)
-            git push --force-with-lease origin main
+            git push origin master
           else
             echo "No selected changes to sync."
           fi

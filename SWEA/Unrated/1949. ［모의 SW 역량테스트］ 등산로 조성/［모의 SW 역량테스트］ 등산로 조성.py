@@ -23,7 +23,7 @@ def dfs(r, c, chance):
 
 # main
 T = int(input())
-for tc in range(T):
+for t in range(1, T+1):
     N, K = map(int, input().split())
     A = []
     top = 0
@@ -41,4 +41,4 @@ for tc in range(T):
                 dfs(i, j, 1)
                 visited[i][j] = 0
 
-    print(f"#{tc+1} {MAX}")
+    print(f"#{t} {MAX}")

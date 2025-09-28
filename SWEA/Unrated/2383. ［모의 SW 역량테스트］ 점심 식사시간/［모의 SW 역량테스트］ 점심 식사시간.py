@@ -2,30 +2,29 @@ import itertools
  
 T = int(input())
  
+import heapq
+
 def calculate_stair_time(stair_time, arrivals):
     if not arrivals:
         return 0
 
     arrivals.sort()
-    in_use = []  # 현재 계단에 올라가 '내릴 때'의 완료시각들 (정렬 유지)
+    heap = []  # 현재 계단 위 3명의 '완료 시각'을 담는 최소힙
 
     for t in arrivals:
-        # 도착한 시각 t 이전에 끝난 사람들 제거
-        in_use = [x for x in in_use if x > t]
-
-        if len(in_use) < 3:
-            # 자리가 있음: 바로 시작
-            finish = t + stair_time
+        # 자리가 꽉 차면, 가장 빨리 끝나는 사람의 완료시각까지 기다림
+        if len(heap) == 3:
+            earliest = heapq.heappop(heap)   # 가장 작은 완료시각
+            start = max(t, earliest)
         else:
-            # 자리가 없음: 가장 빨리 끝나는 사람의 완료시각 이후에 시작
-            earliest = in_use.pop(0)  # 정렬되어 있으니 앞이 최소
-            finish = earliest + stair_time
+            start = t
 
-        # 완료시각을 삽입 정렬로 넣어 정렬 유지
-        import bisect
-        bisect.insort(in_use, finish)
+        finish = start + stair_time
+        heapq.heappush(heap, finish)
 
-    return in_use[-1]  # 마지막 사람이 끝나는 시각
+    # 마지막 완료시각 = 힙의 최대값
+    return max(heap) if heap else 0
+
 
  
 for test_case in range(1, T + 1):
